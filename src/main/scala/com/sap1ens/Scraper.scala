@@ -14,8 +14,6 @@ import com.sap1ens.PageParser._
 
 object Scraper extends App {
 
-    implicit val timeout = Timeout(300 seconds)
-
     val config = ConfigFactory.load()
     val system = ActorSystem("craigslist-scraper-system")
 
@@ -30,5 +28,5 @@ object Scraper extends App {
     val resultsMode = config.getString("results.mode")
 
     val collectorService = system.actorOf(Props(new CollectorService(profiles, searchString, resultsFolder, resultsMode)), "CollectorService")
-    collectorService ? StartScraper
+    collectorService ! StartScraper
 }

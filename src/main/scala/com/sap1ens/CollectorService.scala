@@ -1,21 +1,15 @@
 package com.sap1ens
 
 import akka.actor.{ActorLogging, Actor, Props}
-import akka.pattern.pipe
-import akka.pattern.ask
 import akka.routing.SmallestMailboxRouter
-import scala.concurrent.{ExecutionContext, Future}
-import ExecutionContext.Implicits.global
-import akka.util.Timeout
-import scala.concurrent.duration._
-import akka.agent.Agent
-import scala.collection.mutable.ListBuffer
 
 case class Profile(country: String, pattern: String, cities: List[String])
 
 object CollectorService {
     case object StartScraper
     case object SaveResults
+    case class AddListUrl(url: String)
+    case class RemoveListUrl(url: String)
 }
 
 class CollectorService(profiles: List[Profile], search: String, resultsFolder: String, resultsMode: String) extends Actor with ActorLogging {
@@ -26,32 +20,33 @@ class CollectorService(profiles: List[Profile], search: String, resultsFolder: S
 
     val lists = context.actorOf(Props(new ListParser(self)).withRouter(SmallestMailboxRouter(10)), name = "AdvertisementList")
 
-    implicit val timeout = Timeout(120 seconds)
-
-    val results = Agent(ListBuffer[PageResult]())
-    val listsCounter = Agent(0)
-
-    val listLinks = for(profile <- profiles; city <- profile.cities) yield ParserUtil.createCityUrl(profile.pattern, search, city)
+    var pageResults = List[PageResult]()
+    var listUrls = List[String]()
 
     def receive = {
         case StartScraper => {
-            Future.sequence(listLinks.map { link =>
-                lists ? ListData(link)
-            }) pipeTo sender
-        }
-        case result: List[PageResult] => {
-            results send {_ ++= result}
-            listsCounter send {_ + 1}
-
-            if(listsCounter.get().toInt == listLinks.size) {
-                self ! SaveResults
+            for(profile <- profiles; city <- profile.cities) {
+                self ! AddListUrl(ParserUtil.createCityUrl(profile.pattern, search, city))
             }
         }
-        case SaveResults => {
-            val data = results.get().toList
-            log.debug(s"Total results: ${data.size}")
+        case AddListUrl(url) => {
+            listUrls = url :: listUrls
 
-            ExcelFileWriter.write(data, resultsFolder, resultsMode)
+            lists ! ListData(url)
+        }
+        case RemoveListUrl(url) => {
+            val (left, right) = listUrls span (_ != url)
+            listUrls = left ::: right.drop(1)
+
+            if(listUrls.isEmpty) self ! SaveResults
+        }
+        case results: List[PageResult] => {
+            pageResults = results ::: pageResults
+        }
+        case SaveResults => {
+            log.debug(s"Total results: ${pageResults.size}")
+
+            ExcelFileWriter.write(pageResults, resultsFolder, resultsMode)
 
             context.system.shutdown()
         }
