@@ -14,6 +14,7 @@ import PageParser._
 
 object ParserUtil {
     val ResultsElementId = "toc_rows"
+    val ResultsListClass = "content"
     val ConnectionTimeout = 10000 // millis
 
     val phoneUtil = PhoneNumberUtil.getInstance()
@@ -74,7 +75,8 @@ object ParserUtil {
 
         try {
             val doc = Jsoup.connect(urlString).timeout(ConnectionTimeout).get()
-            val rows = doc.getElementById(ResultsElementId)
+            val wrapper = doc.getElementById(ResultsElementId)
+            val rows = wrapper.getElementsByClass(ResultsListClass).get(0)
 
             // skip page with 0 results
             if (!rows.text.toLowerCase.contains("nothing found")) {
