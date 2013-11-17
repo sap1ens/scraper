@@ -2,27 +2,30 @@ package com.sap1ens
 
 import akka.actor.{ActorRef, Props, ActorLogging, Actor}
 import akka.pattern.pipe
-import akka.pattern.ask
 import scala.concurrent.{ExecutionContext, Future}
 import ExecutionContext.Implicits.global
-import akka.util.Timeout
-import scala.concurrent.duration._
 import akka.routing.SmallestMailboxRouter
-import com.sap1ens.PageParser.{PageResult, PageData}
-import scala.util.{Success, Failure}
 
 object ListParser {
+    import PageParser._
+
     case class ListData(listUrl: String)
     case class ListResult(listUrl: String, pageUrls: List[String], nextPage: Option[String] = None)
+    case class PageResultsList(results: List[PageResult])
+    case class AddPageUrl(listUrl: String, url: String)
+    case class RemovePageUrl(listUrl: String, url: String)
 }
 
-class ListParser(collectorService: ActorRef) extends Actor with ActorLogging {
+class ListParser(collectorService: ActorRef) extends Actor with ActorLogging with CollectionImplicits {
 
     import ListParser._
+    import PageParser._
     import CollectorService._
-    implicit val timeout = Timeout(120 seconds)
 
-    val pages = context.actorOf(Props(new PageParser()).withRouter(SmallestMailboxRouter(20)), name = "Advertisement")
+    val pages = context.actorOf(Props(new PageParser(self)).withRouter(SmallestMailboxRouter(10)), name = "Advertisement")
+
+    var pageUrls = Map[String, List[String]]()
+    var pageResults = Map[String, List[Option[PageResult]]]()
 
     def receive = {
         case ListData(listUrl) => {
@@ -34,33 +37,46 @@ class ListParser(collectorService: ActorRef) extends Actor with ActorLogging {
             future onFailure {
                 case e: Exception => {
                     log.warning(s"Can't process $listUrl, cause: ${e.getMessage}")
-
                     collectorService ! RemoveListUrl(listUrl)
                 }
             }
 
             future pipeTo self
         }
-        case ListResult(listUrl, pageUrls, Some(nextPage)) => {
+        case AddPageUrl(listUrl, url) => {
+            pageUrls = pageUrls.updatedWith(listUrl, List.empty) {url :: _}
+
+            pages ! PageData(listUrl, url)
+        }
+        case RemovePageUrl(listUrl, url) => {
+            pageUrls = pageUrls.updatedWith(listUrl, List.empty) { urls =>
+                val updatedUrls = urls.copyWithout(url)
+
+                if(updatedUrls.isEmpty) {
+                    pageResults.get(listUrl) map { results =>
+                        collectorService ! PageResultsList(results.flatten.toList)
+                        collectorService ! RemoveListUrl(listUrl)
+                    }
+                }
+
+                updatedUrls
+            }
+        }
+        case PageOptionalResult(listUrl, result) => {
+            pageResults = pageResults.updatedWith(listUrl, List.empty) {result :: _}
+        }
+        case ListResult(listUrl, urls, Some(nextPage)) => {
             collectorService ! AddListUrl(nextPage)
 
-            self ! ListResult(listUrl, pageUrls, None)
+            self ! ListResult(listUrl, urls, None)
         }
-        case ListResult(listUrl, pageUrls, None) => {
-            log.debug(s"${pageUrls.size} pages were extracted")
+        case ListResult(listUrl, urls, None) => {
+            log.debug(s"${urls.size} pages were extracted")
 
-            val future = Future.sequence(pageUrls.map { url =>
-                pages ? PageData(url)
-            }).mapTo[List[Option[PageResult]]]
+            if(urls.isEmpty) collectorService ! RemoveListUrl(listUrl)
 
-            future onComplete {
-                case Success(results) => {
-                    collectorService ! results.flatten
-                    collectorService ! RemoveListUrl(listUrl)
-                }
-                case Failure(e) => {
-                    log.warning(s"Can't process pages of $listUrl, cause: ${e.getMessage}")
-                }
+            urls foreach { url =>
+                self ! AddPageUrl(listUrl, url)
             }
         }
     }

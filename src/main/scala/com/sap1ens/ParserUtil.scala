@@ -15,7 +15,7 @@ import PageParser._
 object ParserUtil {
     val ResultsElementId = "toc_rows"
     val ResultsListClass = "content"
-    val ConnectionTimeout = 10000 // millis
+    val ConnectionTimeout = 7000 // millis
 
     val phoneUtil = PhoneNumberUtil.getInstance()
 

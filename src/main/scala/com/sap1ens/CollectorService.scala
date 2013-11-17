@@ -12,13 +12,13 @@ object CollectorService {
     case class RemoveListUrl(url: String)
 }
 
-class CollectorService(profiles: List[Profile], search: String, resultsFolder: String, resultsMode: String) extends Actor with ActorLogging {
+class CollectorService(profiles: List[Profile], search: String, resultsFolder: String, resultsMode: String) extends Actor with ActorLogging with CollectionImplicits {
 
     import CollectorService._
     import ListParser._
     import PageParser._
 
-    val lists = context.actorOf(Props(new ListParser(self)).withRouter(SmallestMailboxRouter(10)), name = "AdvertisementList")
+    val lists = context.actorOf(Props(new ListParser(self)).withRouter(SmallestMailboxRouter(5)), name = "AdvertisementList")
 
     var pageResults = List[PageResult]()
     var listUrls = List[String]()
@@ -35,16 +35,15 @@ class CollectorService(profiles: List[Profile], search: String, resultsFolder: S
             lists ! ListData(url)
         }
         case RemoveListUrl(url) => {
-            val (left, right) = listUrls span (_ != url)
-            listUrls = left ::: right.drop(1)
+            listUrls = listUrls.copyWithout(url)
 
             if(listUrls.isEmpty) self ! SaveResults
         }
-        case results: List[PageResult] => {
+        case PageResultsList(results) => {
             pageResults = results ::: pageResults
         }
         case SaveResults => {
-            log.debug(s"Total results: ${pageResults.size}")
+            log.info(s"Total results: ${pageResults.size}")
 
             ExcelFileWriter.write(pageResults, resultsFolder, resultsMode)
 

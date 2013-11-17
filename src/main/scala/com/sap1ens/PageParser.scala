@@ -1,14 +1,12 @@
 package com.sap1ens
 
-import akka.actor.{Actor, ActorLogging}
-import akka.pattern.pipe
+import akka.actor.{ActorRef, Actor, ActorLogging}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.io.Source
 import ExecutionContext.Implicits.global
-import java.net.URL
+import scala.util.{Success, Failure}
 
 object PageParser {
-    case class PageData(pageUrl: String)
+    case class PageData(listUrl: String, pageUrl: String)
     case class PageDateData(shortDate: String, fullDate: String)
     case class PageResult(
         link: String,
@@ -18,23 +16,30 @@ object PageParser {
         email: Option[String] = None,
         phone: Option[String] = None
     )
+    case class PageOptionalResult(listUrl: String, result: Option[PageResult])
 }
 
-class PageParser extends Actor with ActorLogging {
+class PageParser(listParser: ActorRef) extends Actor with ActorLogging {
 
     import PageParser._
+    import ListParser._
 
     def receive = {
-        case PageData(pageUrl) => {
+        case PageData(listUrl, pageUrl) => {
             val future = Future {
                 ParserUtil.parseAdvertisement(pageUrl)
-            }
+            }.mapTo[Option[PageResult]]
 
-            future onFailure {
-                case e: Exception => log.warning(s"Can't process $pageUrl, cause: ${e.getMessage}")
+            future onComplete {
+                case Success(result) => {
+                    listParser ! PageOptionalResult(listUrl, result)
+                    listParser ! RemovePageUrl(listUrl, pageUrl)
+                }
+                case Failure(e) => {
+                    log.warning(s"Can't process pageUrl, cause: ${e.getMessage}")
+                    listParser ! RemovePageUrl(listUrl, pageUrl)
+                }
             }
-
-            future pipeTo sender
         }
     }
 }
