@@ -6,8 +6,11 @@ import akka.routing.SmallestMailboxRouter
 case class Profile(country: String, pattern: String, cities: List[String])
 
 object CollectorService {
+    import PageParser._
+
     case object StartScraper
     case object SaveResults
+    case class PagesResults(results: List[PageResult])
     case class AddListUrl(url: String)
     case class RemoveListUrl(url: String)
 }
@@ -32,14 +35,14 @@ class CollectorService(profiles: List[Profile], search: String, resultsFolder: S
         case AddListUrl(url) => {
             listUrls = url :: listUrls
 
-            lists ! ListData(url)
+            lists ! StartListParser(url)
         }
         case RemoveListUrl(url) => {
             listUrls = listUrls.copyWithout(url)
 
             if(listUrls.isEmpty) self ! SaveResults
         }
-        case PageResultsList(results) => {
+        case PagesResults(results) => {
             pageResults = results ::: pageResults
         }
         case SaveResults => {

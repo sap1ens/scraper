@@ -45,14 +45,17 @@ object ParserUtil {
     }
 
     def extractPostDate(doc: Document) = {
-        for {
+        (for {
             dateReplyBar <- doc.getElementsByClass("dateReplyBar").toList.headOption
             postDateWrapper <- dateReplyBar.getElementsByClass("postinginfo").toList.headOption
-            postDate <- postDateWrapper.getElementsByTag("date").toList.headOption
         } yield {
-            val date = postDate.text
-            PageDateData(date.substring(0, 10), date)
-        }
+            val postDate = postDateWrapper.getElementsByTag("date").toList.headOption
+            val postTime = postDateWrapper.getElementsByTag("time").toList.headOption
+
+            postDate.map(_.text).orElse(postTime.map(_.text).orElse(None)) map { date =>
+                (date.substring(0, 10), date)
+            }
+        }).flatten
     }
 
     def extractEmail(doc: Document): Option[String] = {

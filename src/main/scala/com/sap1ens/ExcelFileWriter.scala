@@ -12,12 +12,10 @@ object ExcelFileWriter {
             if (mode == "single") {
                 createXLS(path + "/" + "all.xls", data)
             } else {
-                val grouped = data.groupBy(_.date.map(_.shortDate))
+                val grouped = data.groupBy(_.date.map(_._1))
 
                 for ((date, results) <- grouped) {
-                    println("date: " + date + ", results size: " + results.size)
-
-                    createXLS(path + "/" + date.getOrElse("unknown") + ".xls", results)
+                    createXLS(path + "/" + date.getOrElse("unknown") + ".xls", results.toList)
                 }
             }
         } catch {
@@ -44,7 +42,7 @@ object ExcelFileWriter {
                     StringCell(0, item.title),
                     StringCell(1, item.description),
                     StringCell(2, item.link),
-                    StringCell(3, item.date.map(_.fullDate).getOrElse("")),
+                    StringCell(3, item.date.map(_._2).getOrElse("")),
                     StringCell(4, item.email.getOrElse("")),
                     StringCell(5, item.phone.getOrElse(""))
                 )

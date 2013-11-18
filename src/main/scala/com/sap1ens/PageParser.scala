@@ -6,17 +6,15 @@ import ExecutionContext.Implicits.global
 import scala.util.{Success, Failure}
 
 object PageParser {
-    case class PageData(listUrl: String, pageUrl: String)
-    case class PageDateData(shortDate: String, fullDate: String)
+    case class StartPageParser(listUrl: String, pageUrl: String)
     case class PageResult(
         link: String,
         title: String,
         description: String,
-        date: Option[PageDateData] = None,
+        date: Option[(String, String)] = None,
         email: Option[String] = None,
         phone: Option[String] = None
     )
-    case class PageOptionalResult(listUrl: String, result: Option[PageResult])
 }
 
 class PageParser(listParser: ActorRef) extends Actor with ActorLogging {
@@ -25,14 +23,14 @@ class PageParser(listParser: ActorRef) extends Actor with ActorLogging {
     import ListParser._
 
     def receive = {
-        case PageData(listUrl, pageUrl) => {
+        case StartPageParser(listUrl, pageUrl) => {
             val future = Future {
                 ParserUtil.parseAdvertisement(pageUrl)
             }.mapTo[Option[PageResult]]
 
             future onComplete {
                 case Success(result) => {
-                    listParser ! PageOptionalResult(listUrl, result)
+                    listParser ! SavePageResult(listUrl, result)
                     listParser ! RemovePageUrl(listUrl, pageUrl)
                 }
                 case Failure(e) => {
