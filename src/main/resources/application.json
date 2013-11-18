@@ -1,13 +1,7 @@
 {
-    "profile": {
-        "US": {
-            "pattern": "http://{city}.craigslist.org/search/jjj?query={search}&zoomToPosting=&srchType=A",
-            "cities": [
-                "auburn",
-                "virgin"
-            ]
-        },
-        "CA": {
+    "profiles": [
+        {
+            "country": "CA",
             "pattern": "http://{city}.en.craigslist.ca/search/jjj?query={search}&zoomToPosting=&srchType=A",
             "cities": [
                 "calgary",
@@ -67,7 +61,7 @@
                 "whitehorse"
             ]
         }
-    },
+    ],
     "search": "bookkeeper+%7C+bookkeeping+%7C+\"book+keeper\"+%7C+\"book+keeping\"+%7C+bookeeper+%7C+bookeeping",
     "results": {
         "folder": "/Users/sap1ens/test",
