@@ -29,7 +29,7 @@ class CollectorService(profiles: List[Profile], search: String, resultsFolder: S
     def receive = {
         case StartScraper => {
             for(profile <- profiles; city <- profile.cities) {
-                self ! AddListUrl(ParserUtil.createCityUrl(profile.pattern, search, city))
+                self ! AddListUrl(createCityUrl(profile.pattern, search, city))
             }
         }
         case AddListUrl(url) => {
@@ -52,5 +52,11 @@ class CollectorService(profiles: List[Profile], search: String, resultsFolder: S
 
             context.system.shutdown()
         }
+    }
+
+    def createCityUrl(pattern: String, search: String, city: String) = {
+        pattern
+            .replace("{search}", search)
+            .replace("{city}", city)
     }
 }
