@@ -5,7 +5,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import ExecutionContext.Implicits.global
 import scala.util.{Success, Failure}
 import org.jsoup.Jsoup
-import scala.collection.convert.WrapAsScala._
 import org.jsoup.nodes.Document
 
 object PageParser {
@@ -20,7 +19,7 @@ object PageParser {
     )
 }
 
-class PageParser(listParser: ActorRef) extends Actor with ActorLogging with ParserUtil {
+class PageParser(listParser: ActorRef) extends Actor with ActorLogging with ParserUtil with ParserImplicits {
 
     import PageParser._
     import ListParser._
@@ -46,11 +45,11 @@ class PageParser(listParser: ActorRef) extends Actor with ActorLogging with Pars
 
         def extractPostDate(doc: Document) = {
             (for {
-                dateReplyBar <- doc.getElementsByClass("dateReplyBar").toList.headOption
-                postDateWrapper <- dateReplyBar.getElementsByClass("postinginfo").toList.headOption
+                dateReplyBar <- doc.oneByClass("dateReplyBar")
+                postDateWrapper <- dateReplyBar.oneByClass("postinginfo")
             } yield {
-                val postDate = postDateWrapper.getElementsByTag("date").toList.headOption
-                val postTime = postDateWrapper.getElementsByTag("time").toList.headOption
+                val postDate = postDateWrapper.oneByTag("date")
+                val postTime = postDateWrapper.oneByTag("time")
 
                 postDate.map(_.text).orElse(postTime.map(_.text).orElse(None)) map { date =>
                     (date.substring(0, 10), date)
@@ -60,8 +59,8 @@ class PageParser(listParser: ActorRef) extends Actor with ActorLogging with Pars
 
         def extractEmail(doc: Document): Option[String] = {
             for {
-                dateReplyBar <- doc.getElementsByClass("dateReplyBar").toList.headOption
-                email <- dateReplyBar.getElementsByTag("a").toList.headOption
+                dateReplyBar <- doc.oneByClass("dateReplyBar")
+                email <- dateReplyBar.oneByTag("a")
             } yield {
                 email.text
             }
@@ -71,8 +70,8 @@ class PageParser(listParser: ActorRef) extends Actor with ActorLogging with Pars
             val doc = Jsoup.connect(url).timeout(ConnectionTimeout).get()
 
             for {
-                postTitle <- doc.getElementsByClass("postingtitle").toList.headOption
-                postContent <- Option(doc.getElementById("postingbody"))
+                postTitle <- doc.oneByClass("postingtitle")
+                postContent <- doc.byId("postingbody")
             } yield {
                 PageResult(
                     url,

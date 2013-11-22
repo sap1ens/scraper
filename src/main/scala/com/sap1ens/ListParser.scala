@@ -7,11 +7,8 @@ import ExecutionContext.Implicits.global
 import akka.routing.SmallestMailboxRouter
 import org.jsoup.nodes.Element
 import java.net.URL
-import scala.collection.mutable.ListBuffer
 import org.jsoup.Jsoup
-import scala.util.control.Breaks._
 import scala.Some
-import scala.collection.convert.WrapAsScala._
 
 object ListParser {
     import PageParser._
@@ -23,7 +20,7 @@ object ListParser {
     case class SavePageResult(listUrl: String, result: Option[PageResult])
 }
 
-class ListParser(collectorService: ActorRef) extends Actor with ActorLogging with CollectionImplicits with ParserUtil {
+class ListParser(collectorService: ActorRef) extends Actor with ActorLogging with CollectionImplicits with ParserUtil with ParserImplicits {
 
     import ListParser._
     import PageParser._
@@ -85,50 +82,74 @@ class ListParser(collectorService: ActorRef) extends Actor with ActorLogging wit
         }
     }
 
-    // TODO: refactor
     def parseAdvertisementList(listUrl: String): Future[ListResult] = Future {
 
-        def parseAdvertisementListItem(paragraph: Element, url: URL) = {
-            val pageLink = paragraph.children.first.attr("href")
-            url.getProtocol + "://" + url.getHost + pageLink
+        def rowsIterator(urls: List[String], nextPage: Option[String], row: Element): (Option[String], List[String]) = {
+
+            def parseAdvertisementListItem(paragraph: Element, url: URL) = {
+                val pageLink = paragraph.children.first.attr("href")
+                url.getProtocol + "://" + url.getHost + pageLink
+            }
+
+            def rowCursor(newUrls: List[String], nextFound: Option[String]) = {
+                Option(row.nextElementSibling()) map { nextRow => {
+                    rowsIterator(newUrls, nextFound, nextRow)
+                }} getOrElse {
+                    (nextFound, newUrls)
+                }
+            }
+
+            (row.tagName, row.text.toLowerCase) match {
+                case (tagName, _) if tagName == "p" => {
+                    val newUrls = parseAdvertisementListItem(row, new URL(listUrl)) :: urls
+
+                    rowCursor(newUrls, nextPage)
+                }
+                case (tagName, text) if tagName == "h4" => {
+                    if (text.contains("local results")) {
+                        (nextPage, urls)
+                    } else {
+                        val nextFound = for {
+                            nextPageWrapper <- row.oneByClass("next")
+                            nextPageLink <- nextPageWrapper.oneByTag("a")
+                        } yield nextPageLink.attr("href")
+
+                        rowCursor(urls, nextFound)
+                    }
+                }
+                case _ => {
+                    rowCursor(urls, nextPage)
+                }
+            }
         }
 
-        val links = new ListBuffer[String]
-        var nextPage: Option[String] = None
+        val emptyResult = ListResult(listUrl, List.empty, None)
 
         try {
             val doc = Jsoup.connect(listUrl).timeout(ConnectionTimeout).get()
-            val wrapper = doc.getElementById("toc_rows")
-            val rows = wrapper.getElementsByClass("content").get(0)
 
-            // skip page with 0 results
-            if (!rows.text.toLowerCase.contains("nothing found")) {
-                val children = rows.children()
-
-                breakable {
-                    for(row: Element <- children.toList) {
-
-                        (row.tagName, row.text.toLowerCase) match {
-                            case (tagName, _) if tagName == "p" => links += parseAdvertisementListItem(row, new URL(listUrl))
-                            case (tagName, text) if tagName == "h4" => {
-                                if (text.contains("local results")) {
-                                    break()
-                                } else {
-                                    nextPage = for {
-                                        nextPageWrapper <- row.getElementsByClass("next").toList.headOption
-                                        nextPageLink <- nextPageWrapper.getElementsByTag("a").toList.headOption
-                                    } yield nextPageLink.attr("href")
-                                }
-                            }
-                            case _ =>
-                        }
+            val results: Option[ListResult] = doc.byId("toc_rows").map(wrapper => {
+                wrapper.oneByClass("content").map(content => {
+                    val rows = content.children()
+                    
+                    // skip page with 0 results
+                    if (rows.size() > 0 && !content.text.toLowerCase.contains("nothing found")) {
+                        val(nextPage, urls) = rowsIterator(List[String](), None, rows.get(0))
+                        Some(ListResult(listUrl, urls, nextPage))
+                    } else {
+                        Some(emptyResult)
                     }
-                }
-            }
-        } catch {
-            case e: Exception => log.warning(s"Can't parse list page: ${e.getMessage}")
-        }
+                }).flatten
+            }).flatten
 
-        ListResult(listUrl, links.toList, nextPage)
+            results.map(r => r).getOrElse(emptyResult)
+
+        } catch {
+            case e: Exception => {
+                log.warning(s"Can't parse list page: ${e.getMessage}")
+
+                emptyResult
+            }
+        }
     }
 }
