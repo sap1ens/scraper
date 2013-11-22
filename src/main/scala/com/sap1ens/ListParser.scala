@@ -87,8 +87,8 @@ class ListParser(collectorService: ActorRef) extends Actor with ActorLogging wit
         def rowsIterator(urls: List[String], nextPage: Option[String], row: Element): (Option[String], List[String]) = {
 
             def parseAdvertisementListItem(paragraph: Element, url: URL) = {
-                val pageLink = paragraph.children.first.attr("href")
-                url.getProtocol + "://" + url.getHost + pageLink
+                val pageUrl = paragraph.children.first.attr("href")
+                url.getProtocol + "://" + url.getHost + pageUrl
             }
 
             def rowCursor(newUrls: List[String], nextFound: Option[String]) = {
@@ -111,8 +111,8 @@ class ListParser(collectorService: ActorRef) extends Actor with ActorLogging wit
                     } else {
                         val nextFound = for {
                             nextPageWrapper <- row.oneByClass("next")
-                            nextPageLink <- nextPageWrapper.oneByTag("a")
-                        } yield nextPageLink.attr("href")
+                            nextPageUrl <- nextPageWrapper.oneByTag("a")
+                        } yield nextPageUrl.attr("href")
 
                         rowCursor(urls, nextFound)
                     }
@@ -134,7 +134,7 @@ class ListParser(collectorService: ActorRef) extends Actor with ActorLogging wit
                     
                     // skip page with 0 results
                     if (rows.size() > 0 && !content.text.toLowerCase.contains("nothing found")) {
-                        val(nextPage, urls) = rowsIterator(List[String](), None, rows.get(0))
+                        val (nextPage, urls) = rowsIterator(List[String](), None, rows.get(0))
                         Some(ListResult(listUrl, urls, nextPage))
                     } else {
                         Some(emptyResult)

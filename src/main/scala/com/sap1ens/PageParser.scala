@@ -10,7 +10,7 @@ import org.jsoup.nodes.Document
 object PageParser {
     case class StartPageParser(listUrl: String, pageUrl: String)
     case class PageResult(
-        link: String,
+        url: String,
         title: String,
         description: String,
         date: Option[(String, String)] = None,

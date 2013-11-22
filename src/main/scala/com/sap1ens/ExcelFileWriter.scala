@@ -28,7 +28,7 @@ object ExcelFileWriter {
             Set(
                 StringCell(0, "Title"),
                 StringCell(1, "Posting Content"),
-                StringCell(2, "Link"),
+                StringCell(2, "Url"),
                 StringCell(3, "Date"),
                 StringCell(4, "E-mail"),
                 StringCell(5, "Phone")
@@ -41,7 +41,7 @@ object ExcelFileWriter {
                 Set(
                     StringCell(0, item.title),
                     StringCell(1, item.description),
-                    StringCell(2, item.link),
+                    StringCell(2, item.url),
                     StringCell(3, item.date.map(_._2).getOrElse("")),
                     StringCell(4, item.email.getOrElse("")),
                     StringCell(5, item.phone.getOrElse(""))
