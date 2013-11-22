@@ -1,10 +1,10 @@
-package com.sap1ens
+package com.sap1ens.scraper
 
 import akka.actor.{Props, ActorSystem}
 import com.typesafe.config.{ConfigObject, ConfigFactory}
-import com.sap1ens.CollectorService._
 import collection.JavaConversions._
 import collection.JavaConverters._
+import com.sap1ens.scraper.CollectorService.StartScraper
 
 object Scraper extends App {
 

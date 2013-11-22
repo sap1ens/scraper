@@ -1,4 +1,4 @@
-package com.sap1ens
+package com.sap1ens.scraper
 
 import scala.collection.convert.WrapAsScala._
 import com.google.i18n.phonenumbers.PhoneNumberUtil

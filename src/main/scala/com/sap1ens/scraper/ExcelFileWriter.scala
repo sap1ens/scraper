@@ -1,9 +1,9 @@
-package com.sap1ens
+package com.sap1ens.scraper
 
 import info.folone.scala.poi._
 import scala.Predef._
 import info.folone.scala.poi.StringCell
-import PageParser._
+import com.sap1ens.scraper.PageParser.PageResult
 
 object ExcelFileWriter {
 

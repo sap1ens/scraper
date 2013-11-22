@@ -1,4 +1,4 @@
-package com.sap1ens
+package com.sap1ens.scraper
 
 import akka.actor.{ActorRef, Props, ActorLogging, Actor}
 import akka.pattern.pipe

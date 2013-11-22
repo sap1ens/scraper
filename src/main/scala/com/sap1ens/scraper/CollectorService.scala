@@ -1,4 +1,4 @@
-package com.sap1ens
+package com.sap1ens.scraper
 
 import akka.actor.{ActorLogging, Actor, Props}
 import akka.routing.SmallestMailboxRouter

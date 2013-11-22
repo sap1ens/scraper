@@ -1,4 +1,4 @@
-package com.sap1ens
+package com.sap1ens.scraper
 
 trait CollectionImplicits {
     implicit class ListExtensions[K](val list: List[K]) {
