@@ -2,6 +2,7 @@ package com.sap1ens
 
 import akka.actor.{ActorLogging, Actor, Props}
 import akka.routing.SmallestMailboxRouter
+import java.net.URLEncoder
 
 case class Profile(country: String, pattern: String, cities: List[String])
 
@@ -28,8 +29,10 @@ class CollectorService(profiles: List[Profile], search: String, resultsFolder: S
 
     def receive = {
         case StartScraper => {
+            val searchEncoded = URLEncoder.encode(search, "UTF-8")
+
             for(profile <- profiles; city <- profile.cities) {
-                self ! AddListUrl(createCityUrl(profile.pattern, search, city))
+                self ! AddListUrl(createCityUrl(profile.pattern, searchEncoded, city))
             }
         }
         case AddListUrl(url) => {

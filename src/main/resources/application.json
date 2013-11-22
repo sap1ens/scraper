@@ -62,7 +62,7 @@
             ]
         }
     ],
-    "search": "bookkeeper+%7C+bookkeeping+%7C+\"book+keeper\"+%7C+\"book+keeping\"+%7C+bookeeper+%7C+bookeeping",
+    "search": "bookkeeper | bookkeeping | \"book keeper\" | \"book keeping\" | bookeeper | bookeeping",
     "results": {
         "folder": "/Users/sap1ens/test",
         "mode": "single"
