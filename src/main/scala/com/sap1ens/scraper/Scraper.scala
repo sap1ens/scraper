@@ -24,5 +24,5 @@ object Scraper extends App {
     val resultsMode = config.getString("results.mode")
 
     val collectorService = system.actorOf(Props(new CollectorService(profiles.toList, searchString, resultsFolder, resultsMode)), "CollectorService")
-//    collectorService ! StartScraper
+    collectorService ! StartScraper
 }
