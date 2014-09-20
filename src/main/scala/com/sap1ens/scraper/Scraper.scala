@@ -9,7 +9,7 @@ import com.sap1ens.scraper.CollectorService.StartScraper
 object Scraper extends App {
 
     val config = ConfigFactory.load()
-    val system = ActorSystem("craigslist-scraper-system")
+    val system = ActorSystem("scraper-system")
 
     val profiles = for {
         profile: ConfigObject <- config.getObjectList("profiles").asScala
@@ -24,5 +24,5 @@ object Scraper extends App {
     val resultsMode = config.getString("results.mode")
 
     val collectorService = system.actorOf(Props(new CollectorService(profiles.toList, searchString, resultsFolder, resultsMode)), "CollectorService")
-    collectorService ! StartScraper
+//    collectorService ! StartScraper
 }

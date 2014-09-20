@@ -1,4 +1,4 @@
-name := """craigslist-scraper"""
+name := """scraper"""
 
 version := "1.0"
 

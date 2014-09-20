@@ -2,7 +2,7 @@
     "profiles": [
         {
             "country": "US",
-            "pattern": "http://{city}.craigslist.org/search/jjj?query={search}&zoomToPosting=&srchType=A",
+            "pattern": "http://{city}.example.com/search/jjj?query={search}&zoomToPosting=&srchType=A",
             "cities": [
                 "auburn",
                 "bham",
@@ -425,7 +425,7 @@
         },
         {
             "country": "CA",
-            "pattern": "http://{city}.en.craigslist.ca/search/jjj?query={search}&zoomToPosting=&srchType=A",
+            "pattern": "http://{city}.en.example.com/search/jjj?query={search}&zoomToPosting=&srchType=A",
             "cities": [
                 "calgary",
                 "edmonton",

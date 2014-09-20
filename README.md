@@ -1,7 +1,7 @@
-Craigslist Scraper
+Scraper
 ============
 
-Scraper for Craigslist, built on Scala, Akka and Jsoup. It saves all results to XLS file.
+Scraper example built on Scala, Akka and Jsoup. It saves all results to XLS file.
 
 To run the application, first install sbt if it's not already installed:
 
